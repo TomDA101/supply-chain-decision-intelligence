@@ -39,6 +39,61 @@ chains with Ant Colony Optimization across a range of hardware solutions.
 | VmiCustomers | 14 | 2 | |
 | PlantPorts | 22 | 2 | |
 
+*Wh = Warehouse | vmi = Vendor Managed Inventory*
+
+<details>
+<summary><b> Table Columns </b></summary>
+
+**OrderList**
+- Order ID
+- Order Date
+- Origin Port
+- Carrier
+- TPT
+- Service Level
+- Ship ahead day count
+- Ship Late Day count
+- Customer
+- Product ID
+- Plant Code
+- Destination Port
+- Unit quantity
+- Weight
+
+**FreightRates**
+- Carrier
+- orig_port_cd
+- dest_port_cd
+- minm_wgh_qty
+- max_wgh_qty
+- svc_cd
+- minimum cost
+- rate
+- mode_dsc
+- tpt_day_cnt
+- Carrier type
+
+**WhCosts**
+- WH
+- Cost/unit
+
+**WhCapacities**
+- Plant ID
+- Daily Capacity
+
+**ProductsPerPlant**
+- Plant Code
+- Product ID
+
+**VmiCustomers**
+- Plant Code
+- Customers
+
+**PlantPorts**
+- Plant Code
+- Port
+</details>
+
 <p align="center">
   <img src="images/sc_datamodel.png" width="900">
 </p>
@@ -68,18 +123,19 @@ Python/Pandas (EDA, cleaning) → SQL (PostgreSQL/DBeaver) → dbt (staging → 
 Tableau (dashboard) → GitHub (code, files and images)
 
 <p align="center">
-  <img src="images/workflow.png" width="700">
+  <img src="images/workflow.png" width="850">
 </p>
 
 ## Repository Structure
 
 ```
-01_Notebooks/    Jupyter notebooks
-02_SQL/          SQL deliverables
-03_dbt/          dbt models
-04_Dashboard/    Tableau workbook / exports
-data/            Raw dataset
-images/          png files
+01_Notebooks/             Jupyter notebooks
+02_SQL/                   SQL deliverables
+03_dbt/                   dbt models
+04_Dashboard/             Tableau workbook / exports
+05_Stakeholder_meetings/  status presentations  
+data/                     Raw dataset (gitignored, not versioned – see setup instructions)
+images/                   png files
 
 ```
 

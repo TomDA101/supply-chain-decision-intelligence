@@ -20,6 +20,61 @@
 | VmiCustomers | 14 | 2 | |
 | PlantPorts | 22 | 2 | |
 
+*Wh = Warehouse | vmi = Vendor Managed Inventory*
+
+<details>
+<summary><b> Table Columns </b></summary>
+
+**OrderList**
+- Order ID
+- Order Date
+- Origin Port
+- Carrier
+- TPT
+- Service Level
+- Ship ahead day count
+- Ship Late Day count
+- Customer
+- Product ID
+- Plant Code
+- Destination Port
+- Unit quantity
+- Weight
+
+**FreightRates**
+- Carrier
+- orig_port_cd
+- dest_port_cd
+- minm_wgh_qty
+- max_wgh_qty
+- svc_cd
+- minimum cost
+- rate
+- mode_dsc
+- tpt_day_cnt
+- Carrier type
+
+**WhCosts**
+- WH
+- Cost/unit
+
+**WhCapacities**
+- Plant ID
+- Daily Capacity
+
+**ProductsPerPlant**
+- Plant Code
+- Product ID
+
+**VmiCustomers**
+- Plant Code
+- Customers
+
+**PlantPorts**
+- Plant Code
+- Port
+</details>
+
 <p align="center">
   <img src="../images/sc_datamodel.png" width="900">
 </p>
