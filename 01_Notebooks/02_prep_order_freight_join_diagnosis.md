@@ -72,7 +72,7 @@ the duplicate rows:
 select carrier, origin_port, destination_port, service_level,
        min_weight_qty, max_weight_qty,
        count(distinct carrier_type) as n_carrier_types,
-       count(distinct mode_dsc) as n_modes,
+       count(distinct transport_mode) as n_modes,
        count(*) as n_rows
 from stg_freight_rates
 group by 1,2,3,4,5,6
@@ -183,7 +183,8 @@ introduce fabricated cost figures not supported by the dataset.
 
 ---
 
-## 4. Combined exclusion logic for `prep_order_freight`
+## 4. Resulting logic for `prep_order_freight`
+*snapshot at time of this diagnosis*
 
 ```sql
 with matched as (
@@ -217,18 +218,3 @@ Orders excluded here (854 CRF + 1,364 weight-bracket gap = 2,218 total) are not
 silently dropped from the project — they remain fully present in
 `stg_order_list` for Delivery Reliability and any future longitudinal
 validation, since only the cost dimension is affected.
-
----
-
-## 5. Suggested README / model documentation note
-
-> Freight Cost Exposure excludes 2,218 orders (24.1% of orders) from cost
-> calculation: 854 CRF/V44_3 orders (lane not present in FreightRates, by
-> design) and 1,364 orders whose weight falls outside all brackets defined for
-> their specific lane — a data-completeness gap only visible after performing
-> the join, distinct from the known CRF exclusion. Both exclusions are handled
-> in the `prep_order_freight` model, not in staging, since they are
-> business/data-completeness decisions. Where multiple FreightRates rows match
-> an order (affecting >99% of matched orders), no column in the source data
-> distinguishes them; `AVG(rate)` is used as a neutral aggregation without
-> assuming which rate historically applied.

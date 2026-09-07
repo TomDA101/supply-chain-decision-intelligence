@@ -28,4 +28,4 @@ matched as (
     where o.carrier != 'V44_3'
     group by o.order_id, o.customer, o.carrier, o.plant_code, o.weight
 )
-select * from MATCHED ;
+select * from MATCHED
