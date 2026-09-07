@@ -172,7 +172,7 @@ Reliability, Capacity Risk) stored as **separate, normalized columns** rather th
 pre-computed Action Priority Index — this keeps the weighting flexible and adjustable in
 Tableau rather than fixed at the data-modeling stage.
 
-## Workflow (planned)
+## Workflow
 
 Python/Pandas (EDA, cleaning) → SQL (PostgreSQL/DBeaver) → dbt (staging → prep → mart) → 
 Tableau (dashboard) → GitHub (code, files and images)
@@ -206,7 +206,7 @@ images/                   png files
 - [ ] KPI/Index calculation
 - [ ] dbt models
   - [x] staging
-  - [ ] prep
+  - [x] prep
   - [ ] mart
 
 ### Step 3 Tableau
