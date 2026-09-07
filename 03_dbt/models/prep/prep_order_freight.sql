@@ -3,11 +3,11 @@
 
 with orders as (
     select *
-    from stg_order_list
+    from {{ ref('stg_order_list') }}
 ),
 freight as (
     select *
-    from stg_freight_rates
+    from {{ ref('stg_freight_rates') }}
 ),
 matched as (
     select
