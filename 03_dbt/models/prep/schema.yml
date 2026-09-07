@@ -1,0 +1,25 @@
+# models/prep/schema.yml
+version: 2
+
+models:
+  - name: prep_order_freight
+    description: "Order-level freight rate (avg across matched brackets), excluding CRF and weight-bracket-gap orders."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: customer
+        tests:
+          - not_null
+
+  - name: prep_order_capacity
+    description: "Order-level plant capacity utilization ratio."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: customer
+        tests:
+          - not_null

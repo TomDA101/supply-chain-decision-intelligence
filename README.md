@@ -152,11 +152,18 @@ Combines staging models into business-logic-aware building blocks: the order–f
 order–capacity join (via plant code), and aggregation to the customer level — the primary
 analysis grain for the Action Priority Index.
 
-**Freight Cost Exposure note:** empirical testing showed that a derived cost figure
-(`weight × rate`) is not reliably reconstructable across all FreightRates lanes — only
-around 40% follow a clean, consistent weight-based cost structure. Freight Cost Exposure is
-therefore based on the matched `rate` value itself (weighted by order weight) as a relative
-cost-pressure proxy, rather than an unverifiable absolute cost figure.
+**Freight Cost Exposure note:** a derived cost (`weight × rate`) proved inconsistent
+across FreightRates lanes (~40% follow a clean pattern). The KPI therefore uses
+the matched `rate`, weighted by order weight, as a relative cost-pressure proxy
+rather than an unverifiable absolute cost.
+
+2,218 orders (24.1%) are excluded from this KPI: 854 CRF/V44_3 orders (lane not
+present in FreightRates, by design) and 1,364 orders whose weight falls outside
+all brackets defined for their specific lane — a data-completeness gap only
+visible after performing the join. Where multiple FreightRates rows match an
+order (>99% of matched orders), no column in the source data distinguishes
+them; `AVG(rate)` is used as a neutral aggregation. Full diagnosis in
+`01_Notebooks/02_prep_order_freight_join_diagnosis.md` | `02_SQL/prep_order_freight_diagnostic.sql`
 
 ### Mart
 
