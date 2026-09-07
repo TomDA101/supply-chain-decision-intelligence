@@ -102,6 +102,12 @@ No missing values across any table. Key characteristics established during EDA:
 
 - **Snapshot, not time series:** all 9,215 orders share a single order date;
   trend analysis is out of scope for this dataset.
+- **Data-quality cleaning:** duplicate FreightRates rows and zero-weight
+  OrderList records were removed during the Pandas cleaning stage, since
+  both were identified as part of KPI-input validation and represent
+  unambiguous data-quality errors requiring no business interpretation —
+  unlike the CRF/V44_3 exclusion below, which is domain-specific and
+  therefore handled explicitly in the dbt prep layer.
 - **CRF / carrier V44_3:** ~9.3% of orders (854) have no corresponding freight
   rate by design (customer-arranged shipping, confirmed via the dataset authors'
   FAQ) and are excluded from cost calculations.
@@ -116,6 +122,48 @@ No missing values across any table. Key characteristics established during EDA:
   <br><br><br>
   
 <sup> * </sup> The dataset originates from a research collaboration between Brunel University London and Caterpillar Inc. (funded project, Feb–Aug 2015, PI: Prof. Tatiana Kalganova), which also produced the underlying peer-reviewed publication (Dzalbs & Kalganova, 2020, Computers & Industrial Engineering). While the dataset is not explicitly labeled as derived from real Caterpillar operations, the industrial funding context and the structural realism of the data (plant/port networks, freight rate tables, order volumes) suggest it may reflect anonymized real-world logistics patterns rather than a purely synthetic simulation.<br><br>
+
+### dbt Models
+
+The transformation layer follows the standard dbt structure — **staging → prep → mart** —
+connected via dbt Cloud to this GitHub repository (`03_dbt`). SQL logic is prototyped
+against the Postgres data in DBeaver, then finalized as versioned `.sql` model files and
+run/tested through dbt.
+
+### Staging
+
+One model per raw source table (7 total), declared via `sources.yml` against schema
+`s_thomasrabe`. Staging performs renaming and type casting only — no business logic, no
+filtering, no joins. Column names are unified across tables where the same business
+concept appears under different raw labels (e.g. `Plant ID` / `Plant Code` → `plant_code`;
+`svc_cd` / `Service Level` → `service_level`; `orig_port_cd` / `dest_port_cd` →
+`origin_port` / `destination_port`).
+
+Note: duplicate FreightRates rows and zero-weight OrderList records were already removed
+during the Pandas cleaning stage (see EDA notebook), since both were identified as part of
+KPI-input validation and represent unambiguous data-quality errors requiring no business
+interpretation. The CRF/V44_3 exclusion, by contrast, is a domain-specific decision and is
+therefore handled explicitly in the dbt prep layer, not in staging.
+
+### Prep
+
+Combines staging models into business-logic-aware building blocks: the order–freight join
+(weight-bracket join on origin/destination port, carrier, and service level), the
+order–capacity join (via plant code), and aggregation to the customer level — the primary
+analysis grain for the Action Priority Index.
+
+**Freight Cost Exposure note:** empirical testing showed that a derived cost figure
+(`weight × rate`) is not reliably reconstructable across all FreightRates lanes — only
+around 40% follow a clean, consistent weight-based cost structure. Freight Cost Exposure is
+therefore based on the matched `rate` value itself (weighted by order weight) as a relative
+cost-pressure proxy, rather than an unverifiable absolute cost figure.
+
+### Mart
+
+Customer-level KPI table with the three base KPIs (Freight Cost Exposure, Delivery
+Reliability, Capacity Risk) stored as **separate, normalized columns** rather than a single
+pre-computed Action Priority Index — this keeps the weighting flexible and adjustable in
+Tableau rather than fixed at the data-modeling stage.
 
 ## Workflow (planned)
 
@@ -141,17 +189,20 @@ images/                   png files
 
 ## Current Progress
 
-### Step 1
+### Step 1 Python/Pandas
 - [x] Business Question
 - [x] Raw data
 - [x] EDA/Cleaning
 
-### Step 2 via SQL/dbt
+### Step 2 SQL/dbt
 - [w.i.p.] KPI/Index definition
 - [ ] KPI/Index calculation
-- [ ] dbt models (staging _ prep _ mart,)
+- [ ] dbt models
+  - [x] staging
+  - [ ] prep
+  - [ ] mart
 
-### Step 3
+### Step 3 Tableau
 - [ ] Tableau dashboard
 - [ ] *optional validation*
 - [ ] Final presentation (deadline: September 29)

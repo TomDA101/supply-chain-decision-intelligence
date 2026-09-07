@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: s_thomasrabe
+    tables:
+      - name: order_list
+      - name: freight_rates
+      - name: plantports
+      - name: productsperplant
+      - name: vmicustomers
+      - name: whcapacities
+      - name: whcosts
