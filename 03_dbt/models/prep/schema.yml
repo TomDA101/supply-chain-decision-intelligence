@@ -35,3 +35,10 @@ models:
         tests:
           - not_null
 
+  - name: prep_customer_kpi_base
+    description: "Customer-level aggregation of the three base KPI inputs (freight rate, capacity utilization, delivery deviation)."
+    columns:
+      - name: customer
+        tests:
+          - unique
+          - not_null

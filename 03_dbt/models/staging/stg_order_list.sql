@@ -13,7 +13,7 @@ cleaned_orders as (
         "Service Level"::varchar(10) as service_level,
         "Ship ahead day count"::integer as ship_ahead_day_count,
         "Ship Late Day count"::integer  as ship_late_day_count,
-        "Customer"::varchar(20)      as customer,
+        "Customer"::varchar(30)      as customer,
         "Product ID"::varchar(20)    as product_id,
         "Plant Code"::varchar(20)    as plant_code,
         "Destination Port"::varchar(10) as destination_port,

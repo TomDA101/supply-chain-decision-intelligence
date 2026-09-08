@@ -9,7 +9,7 @@ with source_data as (
 cleaned_vmicustomers as (
     select
         "Plant Code"::varchar(20)   as plant_code,
-        "Customers"::varchar(10)    as customer
+        "Customers"::varchar(30)    as customer
       
     from source_data
 )
