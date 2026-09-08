@@ -1,7 +1,5 @@
 {{ config(materialized='table') }}
 
--- models/prep/prep_customer_kpi_base.sql
-
 with freight as (
     select *
     from {{ ref('prep_order_freight') }}
@@ -30,12 +28,14 @@ customer_capacity as (
     from capacity
     group by customer
 ),
+
 customer_delivery as (
     select
         customer,
-        count(*)  as n_delivery_orders,
+        count(*) as n_delivery_orders,
         avg(delivery_deviation_days) as avg_delivery_deviation_days,
-        sum(case when delivery_status = 'Late' then 1 else 0 end)::numeric / nullif(count(*), 0) as pct_late
+        sum(case when delivery_status = 'Late' then 1 else 0 end)::numeric
+            / nullif(count(*), 0) as pct_late
     from delivery
     group by customer
 )
@@ -49,5 +49,7 @@ select
     d.avg_delivery_deviation_days,
     d.pct_late
 from customer_freight f
-full outer join customer_capacity c on f.customer = c.customer
-full outer join customer_delivery d on f.customer = d.customer
+full outer join customer_capacity c
+    on f.customer = c.customer
+full outer join customer_delivery d
+    on coalesce(f.customer, c.customer) = d.customer
