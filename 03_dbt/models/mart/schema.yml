@@ -1,0 +1,30 @@
+# models/mart/schema.yml
+version: 2
+
+models:
+  - name: mart_customer_apindex
+    description: "Customer-level Action Priority Index base table. Contains normalized (0-1) KPI inputs for Freight Cost Exposure, Capacity Risk, and Delivery Reliability, alongside raw values, plant dependency, and data-completeness flags. Weighting into a single composite score is applied in Tableau, not here."
+    columns:
+      - name: customer
+        tests:
+          - unique
+          - not_null
+
+      - name: freight_cost_exposure_norm
+        description: "Log-transformed, min-max normalized weighted average freight rate (0-1). Null if customer has no non-CRF/non-gap orders."
+
+      - name: capacity_risk_norm
+        description: "Log-transformed, min-max normalized average plant capacity utilization (0-1). 26 of 46 customers share the max value due to PLANT03 dominance (~93% of order volume) — a genuine structural tie, not a scaling artifact."
+
+      - name: delivery_risk_norm
+        description: "Min-max normalized share of late deliveries (0-1). No transformation needed; already bounded [0,1] before scaling."
+
+      - name: is_single_plant_exposed
+        description: "True if 100% of the customer's orders route through a single plant."
+        tests:
+          - not_null
+
+      - name: has_complete_kpi_data
+        description: "False if any of the three KPI dimensions is null for this customer (see missing_kpi_dimensions). Used for the operational-view data-gap breakout; tactical/strategic views filter to true only."
+        tests:
+          - not_null

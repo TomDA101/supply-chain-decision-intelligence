@@ -104,3 +104,109 @@ select * from delivery ;
 
 
 
+-- models/prep/prep_customer_kpi_base.sql
+
+with freight as (
+    select *
+    from prep_order_freight
+),
+capacity as (
+    select *
+    from prep_order_capacity
+),
+delivery as (
+    select *
+    from prep_order_delivery
+),
+customer_freight as (
+    select
+        customer,
+        count(*) as n_freight_orders,
+        sum(weight * avg_rate) / nullif(sum(weight), 0) as weighted_avg_rate
+    from freight
+    group by customer
+),
+customer_capacity as (
+    select
+        customer,
+        count(*) as n_capacity_orders,
+        avg(capacity_utilization_ratio) as avg_capacity_utilization
+    from capacity
+    group by customer
+),
+
+customer_delivery as (
+    select
+        customer,
+        count(*) as n_delivery_orders,
+        avg(delivery_deviation_days) as avg_delivery_deviation_days,
+        sum(case when delivery_status = 'Late' then 1 else 0 end)::numeric
+            / nullif(count(*), 0) as pct_late
+    from delivery
+    group by customer
+)
+select
+    coalesce(f.customer, c.customer, d.customer) as customer,
+    f.n_freight_orders,
+    f.weighted_avg_rate,
+    c.n_capacity_orders,
+    c.avg_capacity_utilization,
+    d.n_delivery_orders,
+    d.avg_delivery_deviation_days,
+    d.pct_late
+from customer_freight f
+full outer join customer_capacity c
+    on f.customer = c.customer
+full outer join customer_delivery d
+    on coalesce(f.customer, c.customer) = d.customer
+
+
+-- Testing values
+
+-- Check 1: How many distinc customers?
+
+select count(distinct customer) as n_customers_total
+from stg_order_list;
+-- first result: only 43 customers instead of 46 / fix ist the length of staging model in customers -> change to varchar(30)!!
+
+-- final test
+select count(*) from prep_customer_kpi_base; -- succsess: 46 customer!
+
+
+-- Check 2: Customers who appear in stg_order_list but do not show up in ANY of the three prep models (they would be completely missing after the FULL OUTER JOIN)
+
+select distinct o.customer
+from stg_order_list o
+where o.customer not in (select customer from prep_order_freight)
+  and o.customer not in (select customer from prep_order_capacity)
+  and o.customer not in (select customer from prep_order_delivery);
+
+-- Check 3: Customers with NULL in one of the three KPI columns after the join
+-- (informative, not an error per se — but good to know how many are affected)
+
+select
+    count(*) as n_customers,
+    count(*) filter (where weighted_avg_rate is null)         as missing_freight,
+    count(*) filter (where avg_capacity_utilization is null)  as missing_capacity,
+    count(*) filter (where avg_delivery_deviation_days is null) as missing_delivery
+from prep_customer_kpi_base;
+
+
+
+
+
+-- diagnostic code / debugging test errors on dbt 
+
+select customer, length(customer) as len, count(*)
+from prep_customer_kpi_base
+group by customer, length(customer)
+having customer in (
+    select customer
+    from prep_customer_kpi_base
+    group by customer
+    having count(*) > 1
+)
+order by customer;
+
+select * from prep_customer_kpi_base where customer = 'V55555_53';
+
