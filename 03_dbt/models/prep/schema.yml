@@ -23,3 +23,15 @@ models:
       - name: customer
         tests:
           - not_null
+
+  - name: prep_order_delivery
+    description: "Order-level delivery deviation (net early/late days), excluding orders with contradictory ahead/late flags."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: customer
+        tests:
+          - not_null
+

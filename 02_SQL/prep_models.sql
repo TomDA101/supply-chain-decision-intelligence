@@ -71,4 +71,36 @@ select
     pu.capacity_utilization_ratio
 from orders o
 join plant_utilization pu
-    on o.plant_code = pu.plant_code
+    on o.plant_code = pu.plant_code ;
+
+
+-- models/prep/prep_order_delivery.sql
+
+-- Excludes 123 orders (1.3%) where ship_ahead_day_count and ship_late_day_count are both > 0 simultaneously — a logical contradiction in the source data with no clear resolution (cannot be both early and late).
+-- Full population, not filtered here: on-time orders (both = 0, 47.3%), ahead-only, and late-only orders.
+
+with orders as (
+    select *
+    from stg_order_list
+),
+delivery as (
+    select
+        order_id,
+        customer,
+        plant_code,
+        ship_ahead_day_count,
+        ship_late_day_count,
+        (ship_late_day_count - ship_ahead_day_count) as delivery_deviation_days,
+        case
+            when ship_late_day_count > 0 then 'Late'
+            when ship_ahead_day_count > 0 then 'Early'
+            else 'On Time'
+        end as delivery_status
+    from orders
+    where not (ship_ahead_day_count > 0 and ship_late_day_count > 0)
+)
+select * from delivery ;
+
+
+
+

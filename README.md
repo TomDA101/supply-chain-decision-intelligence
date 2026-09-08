@@ -165,6 +165,13 @@ order (>99% of matched orders), no column in the source data distinguishes
 them; `AVG(rate)` is used as a neutral aggregation. Full diagnosis in
 `01_Notebooks/02_prep_order_freight_join_diagnosis.md` | `02_SQL/prep_order_freight_diagnostic.sql`
 
+**Delivery Reliability:** `ship_ahead_day_count` and `ship_late_day_count` were
+both > 0 for 123 orders (1.3%) — a logical contradiction (cannot be early and
+late at once). These are excluded in `prep_order_delivery` rather than netted
+out, since a computed 0 would be indistinguishable from a genuinely on-time
+delivery. Remaining orders yield `delivery_deviation_days` (late − ahead) and a
+categorical `delivery_status`.
+
 ### Mart
 
 Customer-level KPI table with the three base KPIs (Freight Cost Exposure, Delivery
@@ -174,7 +181,7 @@ Tableau rather than fixed at the data-modeling stage.
 
 ## Workflow
 
-Python/Pandas (EDA, cleaning) → SQL (PostgreSQL/DBeaver) → dbt (staging → prep → mart) → 
+Python/Pandas (EDA, cleaning) → SQL (PostgreSQL/DBeaver) → dbt cloud (staging → prep → mart) → 
 Tableau (dashboard) → GitHub (code, files and images)
 
 <p align="center">
