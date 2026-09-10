@@ -174,10 +174,33 @@ categorical `delivery_status`.
 
 ### Mart
 
-Customer-level KPI table with the three base KPIs (Freight Cost Exposure, Delivery
-Reliability, Capacity Risk) stored as **separate, normalized columns** rather than a single
-pre-computed Action Priority Index — this keeps the weighting flexible and adjustable in
-Tableau rather than fixed at the data-modeling stage.
+`mart_customer_apindex` — one row per customer (46), the single source feeding
+all three Tableau stakeholder perspectives. Contains normalized (0–1) KPI
+inputs for Freight Cost Exposure, Capacity Risk, and Delivery Reliability as
+**separate columns**, not a pre-computed composite score — index weighting is
+applied in Tableau, keeping it adjustable rather than fixed upstream.
+
+**Normalization:** Freight rate and capacity utilization are log-transformed
+before min-max scaling (`ln(x + 1)`), since both are right-skewed. Capacity
+utilization in particular is dominated by a single plant (~93% of order
+volume), causing 26 of 46 customers to share an identical max value — a
+genuine structural tie the log-transform does not (and should not) resolve.
+Delivery reliability uses the share of late orders directly (already bounded
+[0,1]), no transformation needed.
+
+**Plant dependency:** `is_single_plant_exposed` flags customers whose orders
+route through exactly one plant — structural context for the strategic
+narrative, independent of the index itself.
+
+**Data completeness:** `has_complete_kpi_data` flags the 6 customers missing
+at least one KPI input (4 missing Freight, 2 missing Delivery — see prep
+exclusion notes above). These are broken out separately in the operational
+view rather than scored with partial data; tactical and strategic views use
+only the 40 customers with complete data.
+
+<p align="center">
+  <img src="images/Lineage.png" width="850">
+</p>
 
 ## Workflow
 
@@ -209,12 +232,12 @@ images/                   png files
 - [x] EDA/Cleaning
 
 ### Step 2 SQL/dbt
-- [w.i.p.] KPI/Index definition
-- [ ] KPI/Index calculation
-- [ ] dbt models
+- [x] KPI/Index definition
+- [x] KPI/Index calculation
+- [x] dbt models
   - [x] staging
   - [x] prep
-  - [ ] mart
+  - [x] mart
 
 ### Step 3 Tableau
 - [ ] Tableau dashboard

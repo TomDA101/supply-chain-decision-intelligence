@@ -41,7 +41,7 @@ cleaned_freight as (
         "Carrier"::varchar(20)        as carrier,
         "orig_port_cd"::varchar(10)   as orig_port_cd,
         "dest_port_cd"::varchar(10)   as dest_port_cd,
-        "minm_wgh_qty"::numeric(10,2) as minm_wgh_qty,
+        "minm_wgh_qty"::numeric(10,2) as min_wgh_qty,
         "max_wgh_qty"::numeric(10,2)  as max_wgh_qty,
         "svc_cd"::varchar(10)         as svc_cd,
         "minimum cost"::numeric(10,2) as minimum_cost,
