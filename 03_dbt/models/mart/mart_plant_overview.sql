@@ -18,7 +18,7 @@ orders as (
 
 port_links as (
     select *
-    from {{ ref('stg_plant_ports') }}
+    from {{ ref('stg_plantports') }}
 ),
 
 product_links as (
