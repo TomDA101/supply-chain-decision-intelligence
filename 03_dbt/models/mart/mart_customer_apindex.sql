@@ -1,10 +1,10 @@
 {{ config(materialized='table') }}
 
-
 with base as (
     select *
     from {{ ref('prep_customer_kpi_base') }}
 ),
+
 plant_dependency as (
     select
         customer,
@@ -13,6 +13,7 @@ plant_dependency as (
     from {{ ref('prep_order_capacity') }}
     group by customer
 ),
+
 flagged as (
     select
         b.*,
@@ -36,6 +37,7 @@ flagged as (
     left join plant_dependency pd
         on b.customer = pd.customer
 ),
+
 transformed as (
     select
         *,
@@ -50,6 +52,7 @@ transformed as (
         end as log_capacity_utilization
     from flagged
 ),
+
 normalized as (
     select
         *,
@@ -65,26 +68,55 @@ normalized as (
             / nullif(max(pct_late) over () - min(pct_late) over (), 0)
             as delivery_risk_norm
     from transformed
+),
+
+thresholds as (
+    select
+        percentile_cont(0.75) within group (order by freight_cost_exposure_norm)
+            as freight_p75,
+        percentile_cont(0.75) within group (order by capacity_risk_norm)
+            as capacity_p75
+    from normalized
+    where has_complete_kpi_data
+),
+
+flagged_recommendations as (
+    select
+        n.*,
+        (n.freight_cost_exposure_norm >= t.freight_p75) as freight_top_quartile,
+        (n.capacity_risk_norm >= t.capacity_p75) as capacity_top_quartile,
+        (n.pct_late > 0) as has_late_deliveries
+    from normalized n
+    cross join thresholds t
+),
+
+labeled as (
+    select
+        *,
+        'C' || lpad(row_number() over (order by customer)::text, 2, '0')
+            as customer_label
+    from flagged_recommendations
 )
+
 select
     customer,
-    -- raw values (tooltips / drill-down in Tableau)
+    customer_label,
     weighted_avg_rate,
     avg_capacity_utilization,
     avg_delivery_deviation_days,
     pct_late,
-    -- normalized 0-1 scores (index inputs; weighting applied in Tableau)
     freight_cost_exposure_norm,
     capacity_risk_norm,
     delivery_risk_norm,
-    -- plant dependency (structural context, feeds strategic narrative)
+    freight_top_quartile,
+    capacity_top_quartile,
+    has_late_deliveries,
     n_distinct_plants,
     is_single_plant_exposed,
-    -- data completeness (operational-view use only)
     has_complete_kpi_data,
     missing_kpi_dimensions,
-
     n_freight_orders,
     n_capacity_orders,
     n_delivery_orders
-from normalized
+
+from labeled

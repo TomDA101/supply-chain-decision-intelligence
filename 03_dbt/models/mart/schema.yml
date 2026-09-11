@@ -28,3 +28,11 @@ models:
         description: "False if any of the three KPI dimensions is null for this customer (see missing_kpi_dimensions). Used for the operational-view data-gap breakout; tactical/strategic views filter to true only."
         tests:
           - not_null
+
+  - name: mart_plant_overview
+    description: "Plant-level overview for capacity, cost, and network visualizations. Separate grain from mart_customer_apindex (one row per plant, not per customer) — relate the two in Tableau via dashboard action filters, not a data-model join, to avoid fan-out."
+    columns:
+      - name: plant_code
+        tests:
+          - unique
+          - not_null
