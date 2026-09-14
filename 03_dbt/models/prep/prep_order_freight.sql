@@ -17,7 +17,8 @@ matched as (
         o.plant_code,
         o.weight,
         avg(f.rate)          as avg_rate,
-        avg(f.minimum_cost)  as avg_minimum_cost
+        avg(f.minimum_cost)  as avg_minimum_cost,
+        max(f.rate) / nullif(min(f.rate), 0) as rate_spread_ratio
     from orders o
     join freight f
         on o.carrier = f.carrier

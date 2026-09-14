@@ -29,6 +29,9 @@ models:
         tests:
           - not_null
 
+      - name: has_ambiguous_freight_data
+        description: "Data-quality warning: TRUE if any of the customer's matched FreightRates rows show a >10x price spread for the same order — signals rate ambiguity, independent of the APIndex itself."   
+
   - name: mart_plant_overview
     description: "Plant-level overview for capacity, cost, and network visualizations. Separate grain from mart_customer_apindex (one row per plant, not per customer) — relate the two in Tableau via dashboard action filters, not a data-model join, to avoid fan-out."
     columns:
