@@ -18,7 +18,7 @@ freight_ambiguity as (
         customer,
         bool_or(rate_spread_ratio > 10) as has_ambiguous_freight_data,
         count(*) filter (where rate_spread_ratio > 10) as n_ambiguous_orders
-    from prep_order_freight
+    from {{ ref('prep_order_freight') }}
     group by customer
 ),
 flagged as (
