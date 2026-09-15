@@ -16,6 +16,45 @@ plant_dependency as (
     group by customer
 ),
 
+-- Ersetzt die bisherige freight_ambiguity-CTE in mart_customer_apindex.sql
+
+-- Per-customer median rate, as the reference point for "typical" pricing.
+customer_rate_stats as (
+    select
+        customer,
+        percentile_cont(0.5) within group (order by avg_rate) as median_rate
+    from prep_order_freight
+    group by customer
+),
+
+-- Flag individual orders whose rate is far above the customer's own median
+-- (not the dataset-wide median — a customer with generally higher rates
+-- shouldn't be flagged just for being consistent). Threshold: >3x the
+-- customer's median rate. This is a judgment call, not a statistically
+-- derived cutoff — documented here for transparency.
+order_rate_flags as (
+    select
+        f.customer,
+        f.order_id,
+        f.avg_rate,
+        crs.median_rate,
+        (f.avg_rate > 3 * crs.median_rate) as is_ambiguous_rate_order
+    from prep_order_freight f
+    join customer_rate_stats crs
+        on f.customer = crs.customer
+),
+
+-- Aggregate to customer level: does this customer have any ambiguous-rate
+-- orders, and how many.
+freight_ambiguity as (
+    select
+        customer,
+        bool_or(is_ambiguous_rate_order) as has_ambiguous_freight_data,
+        count(*) filter (where is_ambiguous_rate_order) as n_ambiguous_orders
+    from order_rate_flags
+    group by customer
+),
+
 -- Completeness flag: which customers have all three KPI inputs, and which
 -- dimension(s) are missing for the rest. Operational-view use only.
 flagged as (
@@ -259,4 +298,8 @@ select
     (order_count > 0) as is_active_plant
 from combined
 order by capacity_utilization_ratio desc nulls last
+
+
+
+
 

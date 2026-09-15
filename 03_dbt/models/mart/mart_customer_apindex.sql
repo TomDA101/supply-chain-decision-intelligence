@@ -13,12 +13,33 @@ plant_dependency as (
     from {{ ref('prep_order_capacity') }}
     group by customer
 ),
+
+customer_rate_stats as (
+    select
+        customer,
+        percentile_cont(0.5) within group (order by avg_rate) as median_rate
+    from {{ ref('prep_order_freight') }}
+    group by customer
+),
+
+order_rate_flags as (
+    select
+        f.customer,
+        f.order_id,
+        f.avg_rate,
+        crs.median_rate,
+        (f.avg_rate > 3 * crs.median_rate) as is_ambiguous_rate_order
+    from {{ ref('prep_order_freight') }} f
+    join customer_rate_stats crs
+        on f.customer = crs.customer
+),
+
 freight_ambiguity as (
     select
         customer,
-        bool_or(rate_spread_ratio > 10) as has_ambiguous_freight_data,
-        count(*) filter (where rate_spread_ratio > 10) as n_ambiguous_orders
-    from {{ ref('prep_order_freight') }}
+        bool_or(is_ambiguous_rate_order) as has_ambiguous_freight_data,
+        count(*) filter (where is_ambiguous_rate_order) as n_ambiguous_orders
+    from order_rate_flags
     group by customer
 ),
 flagged as (

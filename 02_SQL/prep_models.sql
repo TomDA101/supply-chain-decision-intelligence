@@ -20,7 +20,14 @@ matched as (
         o.plant_code,
         o.weight,
         avg(f.rate)          as avg_rate,
-        avg(f.minimum_cost)  as avg_minimum_cost
+        avg(f.minimum_cost)  as avg_minimum_cost,
+        
+-- Ratio between the highest and lowest matched FreightRates rate for this order.
+-- A high ratio flags orders where the fan-out matches rate rows with materially different price levels (not just minor duplicate noise)
+-- the case that surfaced this: PORT09->PORT09 entries mixing normal AIR transport rates with much higher GROUND, 0-transit-day rates
+-- (likely a different fee type, e.g. local handling/storage, not confirmed by any field in the source data)
+        max(f.rate) / nullif(min(f.rate), 0) as rate_spread_ratio
+        
     from orders o
     join freight f
         on o.carrier = f.carrier
