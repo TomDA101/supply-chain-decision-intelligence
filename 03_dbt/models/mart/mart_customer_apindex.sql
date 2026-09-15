@@ -26,6 +26,8 @@ flagged as (
         b.*,
         pd.n_distinct_plants,
         pd.is_single_plant_exposed,
+        coalesce(fa.has_ambiguous_freight_data, false) as has_ambiguous_freight_data,
+        coalesce(fa.n_ambiguous_orders, 0) as n_ambiguous_orders,
 
         case
             when b.weighted_avg_rate is null
@@ -43,6 +45,8 @@ flagged as (
     from base b
     left join plant_dependency pd
         on b.customer = pd.customer
+    left join freight_ambiguity fa
+        on b.customer = fa.customer
 ),
 
 transformed as (
@@ -118,6 +122,8 @@ select
     freight_top_quartile,
     capacity_top_quartile,
     has_late_deliveries,
+    has_ambiguous_freight_data,
+    n_ambiguous_orders,
     n_distinct_plants,
     is_single_plant_exposed,
     has_complete_kpi_data,
