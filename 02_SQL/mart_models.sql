@@ -16,8 +16,6 @@ plant_dependency as (
     group by customer
 ),
 
--- Ersetzt die bisherige freight_ambiguity-CTE in mart_customer_apindex.sql
-
 -- Per-customer median rate, as the reference point for "typical" pricing.
 customer_rate_stats as (
     select
@@ -298,6 +296,7 @@ select
     (order_count > 0) as is_active_plant
 from combined
 order by capacity_utilization_ratio desc nulls last
+
 
 
 
