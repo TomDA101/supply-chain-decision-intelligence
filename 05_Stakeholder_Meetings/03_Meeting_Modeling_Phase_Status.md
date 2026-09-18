@@ -19,30 +19,70 @@ is deliberately kept separate (data blending) to avoid a "fan-out."
 
 ## Thesis Adjustments During Modeling
 
-Two theses changed shape during the modeling phase — a sign the pipeline is
-being stress-tested against real data, not just assumed:
+Two theses evolved during the modeling phase as the initial assumptions were tested against the data:
 
-- **Freight Cost Exposure:** started as an absolute cost calculation
-  (`weight × rate`); switched to a relative rate-pressure proxy once only
-  ~40% of FreightRates lanes turned out to follow a consistent cost pattern.
-  Data reliability drove the change, not preference.
-- **Customer C46:** started as a suspected data error (extreme freight
-  outlier); ended as a validated, structurally explained case — it took six
-  diagnostic queries to rule out a thin sample, a join artifact, and a
-  bracket-nesting bug before landing on the real explanation.
+- **Freight Cost Exposure:** two separate adjustments. Switched from an
+  absolute weight × rate cost to a relative rate-pressure proxy, since only
+  ~40% of lanes followed a consistent cost pattern. Separately, the metric was log-transformed before normalization to address the same right-skew issue observed in capacity (Insight 1).
+- **Customer C46:** started as a suspected data error (extreme freight outlier); diagnostic testing traced it to  specific rows and ruled out a thin sample, join error, and bracket-nesting bug.
+
 
 ---
 
 ## Insight 1 — Capacity Risk Concentration by Plant
 
-**Thesis:** Capacity Risk in the current index is structurally dominated by a
-single plant — 26 of 46 customers share an identical
+**Thesis:** Capacity Risk in the current index is strongly influenced by plant-level concentration — 26 of 46 customers share an identical
 normalized score, meaning the KPI reflects network concentration more than
 individual customer risk.
 
 **Evidence:** A distribution check that revealed the skewed distribution and led to the log transformation. Additionally, the clustering quantification, which identified the 26/46 cluster.
 
-**Sample:**
+**Results:**
+
+<details>
+<summary>SQL — distribution check (also covers freight_rate, pct_late)</summary>
+
+```sql
+select
+    'freight_rate' as kpi,
+    min(weighted_avg_rate) as min_val,
+    percentile_cont(0.5) within group (order by weighted_avg_rate) as median_val,
+    max(weighted_avg_rate) as max_val,
+    stddev(weighted_avg_rate) as stddev_val,
+    avg(weighted_avg_rate) as avg_val
+from prep_customer_kpi_base
+union all
+select
+    'capacity_utilization',
+    min(avg_capacity_utilization),
+    percentile_cont(0.5) within group (order by avg_capacity_utilization),
+    max(avg_capacity_utilization),
+    stddev(avg_capacity_utilization),
+    avg(avg_capacity_utilization)
+from prep_customer_kpi_base
+union all
+select
+    'pct_late',
+    min(pct_late),
+    percentile_cont(0.5) within group (order by pct_late),
+    max(pct_late),
+    stddev(pct_late),
+    avg(pct_late)
+from prep_customer_kpi_base;
+```
+ 
+</details>
+
+| kpi | min_val | median_val | max_val | stddev_val | avg_val |
+|---|---|---|---|---|---|
+| freight_rate | 0.0424 | 0.0484 | 3.4665 | 0.5299 | 0.1752 |
+| capacity_utilization | 0.3786 | 8.4294 | 8.4294 | 2.3154 | 7.4922 |
+| pct_late | 0 | 0 | 0.1324 | 0.0200 | 0.0030 |
+ 
+***Freight rate:** mean well above median, with an extreme upper range → strong evidence of a right-skewed distribution.</br> **Capacity utilization:**
+median equals max (8.4294) — confirms the clustering directly, not just via
+the separate count query below.*
+
 
 <details>
 <summary>SQL</summary>
@@ -70,8 +110,7 @@ limit 5;
 | ... | ... |
 
 
-*One utilization value alone accounts for 26 of 46 customers — a single
-plant's volume share is the primary driver, not customer-specific behavior.*
+*One utilization value alone accounts for 26 of 46 customers, indicating that the capacity KPI is strongly shaped by a shared structural driver rather than customer-specific variation.*
 
 **Limitation** This limits the KPI's power to differentiate customers within
 that group — worth flagging as an open limitation, not hiding it.
@@ -86,9 +125,7 @@ individual customer action despite the shared structural component.
 
 ## Insight 2 — Diagnosing the C46 Freight Outlier
 
-**Thesis:** Customer C46's extreme freight rate is not a data error but a
-real, duplicate-bracket rate structure on one lane (PORT09→PORT09) — kept in
-the dataset and flagged, not excluded.
+**Thesis:** Customer C46's extreme freight rate is not explained by a modeling or join artifact, but traces back to a duplicate-bracket rate structure on one lane (PORT09→PORT09) — kept in the dataset and flagged, not excluded.
 
 **Evidence:** Six-step diagnostic: thin
 sample ruled out, lane-level breakdown, bracket-nesting check, mode/transit
@@ -125,7 +162,7 @@ order by count(*) desc;
 | PORT09 → PORT09 (DTP) | 32 | 12.28 (~256x higher) |
 
 *The high average isn't spread across all of C46's orders — it's driven by
-32 orders on one specific lane — a deviation that warrants closer investigation rather than simply being smoothed out via averaging.*
+32 orders on one specific row — a deviation that warrants closer investigation rather than simply being smoothed out via averaging.*
 
 **Caveat (working theory, not confirmed by the dataset):** The pattern
 (GROUND mode, 0–1 transit days, origin = destination) suggests a local
