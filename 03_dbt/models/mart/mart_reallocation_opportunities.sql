@@ -14,6 +14,16 @@ capacity as (
 
 ),
 
+plant_capacity as (
+
+    select distinct
+        plant_code,
+        daily_capacity,
+        capacity_utilization_ratio
+    from capacity
+
+),
+
 plant_products as (
 
     select *
@@ -66,10 +76,18 @@ eligible_alternatives as (
         d.order_count,
         d.total_units,
         d.total_weight,
+
         d.current_daily_capacity,
         d.current_capacity_utilization,
 
-        pp.plant_code as alternative_plant
+        pp.plant_code as alternative_plant,
+
+        ac.daily_capacity as alternative_daily_capacity,
+        ac.capacity_utilization_ratio as alternative_capacity_utilization,
+
+        d.current_capacity_utilization
+            - ac.capacity_utilization_ratio
+            as capacity_utilization_improvement
 
     from current_demand d
 
@@ -80,6 +98,9 @@ eligible_alternatives as (
     join plant_ports pport
         on pp.plant_code = pport.plant_code
         and d.origin_port = pport.port
+
+    left join plant_capacity ac
+        on pp.plant_code = ac.plant_code
 
 )
 

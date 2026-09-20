@@ -83,3 +83,19 @@ models:
       - name: current_capacity_utilization
         tests:
           - not_null
+      
+            - name: alternative_daily_capacity
+        tests:
+          - not_null
+
+      - name: alternative_capacity_utilization
+        tests:
+          - not_null
+
+      - name: capacity_utilization_improvement
+        description: >
+          Difference between current and alternative observed capacity
+          utilization. Positive values indicate lower observed capacity
+          pressure at the alternative plant.
+        tests:
+          - not_null
