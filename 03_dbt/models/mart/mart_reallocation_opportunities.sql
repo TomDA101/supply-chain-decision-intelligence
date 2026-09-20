@@ -7,20 +7,10 @@ with orders as (
 
 ),
 
-capacity as (
+capacities as (
 
     select *
-    from {{ ref('prep_order_capacity') }}
-
-),
-
-plant_capacity as (
-
-    select distinct
-        plant_code,
-        daily_capacity,
-        capacity_utilization_ratio
-    from capacity
+    from {{ ref('stg_wh_capacities') }}
 
 ),
 
@@ -38,6 +28,36 @@ plant_ports as (
 
 ),
 
+plant_order_counts as (
+
+    select
+        plant_code,
+        count(*) as observed_order_count
+    from orders
+    group by plant_code
+
+),
+
+plant_capacity as (
+
+    select
+        c.plant_code,
+        c.daily_capacity,
+        coalesce(p.observed_order_count, 0) as observed_order_count,
+
+        round(
+            coalesce(p.observed_order_count, 0)::numeric
+            / nullif(c.daily_capacity, 0),
+            4
+        ) as observed_capacity_utilization
+
+    from capacities c
+
+    left join plant_order_counts p
+        on c.plant_code = p.plant_code
+
+),
+
 current_demand as (
 
     select
@@ -50,13 +70,14 @@ current_demand as (
         sum(o.unit_quantity) as total_units,
         sum(o.weight) as total_weight,
 
-        max(c.daily_capacity) as current_daily_capacity,
-        max(c.capacity_utilization_ratio) as current_capacity_utilization
+        max(pc.daily_capacity) as current_daily_capacity,
+        max(pc.observed_capacity_utilization)
+            as current_capacity_utilization
 
     from orders o
 
-    left join capacity c
-        on o.order_id = c.order_id
+    left join plant_capacity pc
+        on o.plant_code = pc.plant_code
 
     group by
         o.customer,
@@ -83,10 +104,12 @@ eligible_alternatives as (
         pp.plant_code as alternative_plant,
 
         ac.daily_capacity as alternative_daily_capacity,
-        ac.capacity_utilization_ratio as alternative_capacity_utilization,
+        ac.observed_order_count as alternative_observed_order_count,
+        ac.observed_capacity_utilization
+            as alternative_capacity_utilization,
 
         d.current_capacity_utilization
-            - ac.capacity_utilization_ratio
+            - ac.observed_capacity_utilization
             as capacity_utilization_improvement
 
     from current_demand d

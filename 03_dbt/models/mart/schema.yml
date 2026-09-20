@@ -99,3 +99,11 @@ models:
           pressure at the alternative plant.
         tests:
           - not_null
+
+      - name: alternative_observed_order_count
+        description: >
+          Number of orders observed for the alternative plant in the
+          analyzed dataset. Zero indicates no observed orders and does
+          not imply confirmed physical spare capacity.
+        tests:
+          - not_null
