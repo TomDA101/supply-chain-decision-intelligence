@@ -65,6 +65,13 @@ models:
         tests:
           - not_null
 
+      - name: alternative_plant
+        description: >
+          Alternative plant that supports the same product and is connected
+          to the same origin port as the current plant.
+        tests:
+          - not_null
+
       - name: order_count
         tests:
           - not_null
