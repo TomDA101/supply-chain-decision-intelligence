@@ -83,8 +83,8 @@ models:
       - name: current_capacity_utilization
         tests:
           - not_null
-      
-            - name: alternative_daily_capacity
+
+      - name: alternative_daily_capacity
         tests:
           - not_null
 
