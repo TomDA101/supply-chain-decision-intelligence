@@ -107,3 +107,20 @@ models:
           not imply confirmed physical spare capacity.
         tests:
           - not_null
+
+      - name: alternative_status
+        description: >
+          Evidence-based classification of the alternative plant:
+          Observed Improvement, Unutilized Candidate,
+          Same Capacity Pressure, or Higher Capacity Pressure.
+        tests:
+          - not_null
+
+      - name: alternative_rank
+        description: >
+          Rank of eligible alternative plants within each
+          customer-product-origin-port-current-plant combination.
+          Observed improvements are prioritized over unutilized candidates
+          and alternatives with equal or higher observed capacity pressure.
+        tests:
+          - not_null

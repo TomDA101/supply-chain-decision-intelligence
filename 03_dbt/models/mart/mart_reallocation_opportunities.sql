@@ -125,7 +125,60 @@ eligible_alternatives as (
     left join plant_capacity ac
         on pp.plant_code = ac.plant_code
 
+),
+
+classified_alternatives as (
+
+    select
+        *,
+
+        case
+            when alternative_observed_order_count = 0
+                then 'Unutilized Candidate'
+
+            when capacity_utilization_improvement > 0
+                then 'Observed Improvement'
+
+            when capacity_utilization_improvement = 0
+                then 'Same Capacity Pressure'
+
+            else 'Higher Capacity Pressure'
+        end as alternative_status
+
+    from eligible_alternatives
+
+),
+
+ranked_alternatives as (
+
+    select
+        *,
+
+        row_number() over (
+
+            partition by
+                customer,
+                product_id,
+                origin_port,
+                current_plant
+
+            order by
+
+                case alternative_status
+                    when 'Observed Improvement' then 1
+                    when 'Unutilized Candidate' then 2
+                    when 'Same Capacity Pressure' then 3
+                    when 'Higher Capacity Pressure' then 4
+                end,
+
+                capacity_utilization_improvement desc nulls last,
+                alternative_plant
+
+        ) as alternative_rank
+
+    from classified_alternatives
+
 )
 
 select *
-from eligible_alternatives
+from ranked_alternatives
