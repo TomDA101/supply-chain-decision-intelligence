@@ -39,3 +39,40 @@ models:
         tests:
           - unique
           - not_null
+
+  - name: mart_reallocation_opportunities
+    description: >
+      Customer-product-port level model for identifying structurally eligible
+      plant reallocation opportunities. Reallocation candidates must support
+      the same product and origin-port network as the current plant.
+      Capacity metrics provide comparative context and do not represent
+      confirmed physical spare capacity.
+
+    columns:
+      - name: customer
+        tests:
+          - not_null
+
+      - name: product_id
+        tests:
+          - not_null
+
+      - name: origin_port
+        tests:
+          - not_null
+
+      - name: current_plant
+        tests:
+          - not_null
+
+      - name: order_count
+        tests:
+          - not_null
+
+      - name: current_daily_capacity
+        tests:
+          - not_null
+
+      - name: current_capacity_utilization
+        tests:
+          - not_null
