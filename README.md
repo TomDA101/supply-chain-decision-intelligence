@@ -9,10 +9,10 @@ A BI framework that moves from static reporting toward actionable decision suppo
 for supply chain performance. Three base KPIs — Delivery Reliability, Freight Cost
 Exposure, and Capacity Risk — are combined into a weighted Action Priority Index,
 calculated per customer and viewed through three stakeholder perspectives
-(Operational, Tactical, Strategic). Details on KPI logic and weighting are still
-being finalized and will be documented as the pipeline progresses.
-
-***Optional validation:** If time permits, the decision logic will be challenged against an independent longitudinal supply-chain dataset to assess its transferability across different operational and financial performance measures.*
+(Operational, Tactical, Strategic). The framework combines a transparent,
+adjustable priority score with KPI-level context and a separate operational
+reallocation layer. It supports prioritization and scenario discussion; it is
+not a predictive model or an automated allocation recommendation.
 
 ## Dataset
 
@@ -198,14 +198,153 @@ exclusion notes above). These are broken out separately in the operational
 view rather than scored with partial data; tactical and strategic views use
 only the 40 customers with complete data.
 
-<p align="center">
-  <img src="images/Lineage.png" width="850">
+`mart_plant_overview` — one row per plant and the plant-level context layer for
+the Tableau model. It combines master-data capacity and unit cost with observed
+order volume, share of total order volume, capacity-utilization ratio, customers
+served, port connections, supported products, and an active/inactive flag.
+
+In Tableau, `mart_plant_overview` is connected to `mart_customer_apindex`
+through a **logical relationship**, not a physical row-level join. This keeps
+the different grains intact — plant level versus customer level — and prevents
+plant attributes from duplicating customer rows or changing APIndex values.
+The relationship adds plant/network context to the customer prioritization;
+`mart_customer_apindex` remains the authoritative source for the APIndex.
+
+`mart_reallocation_opportunities` — a separate operational decision-support
+mart at the grain customer × product × origin port × current plant × alternative
+plant. An alternative plant is structurally eligible only if it supports the
+same product, is connected to the same origin port, and differs from the current
+plant. The mart ranks alternatives by their observed capacity-pressure context.
+It does not feed the APIndex and does not claim that physical spare capacity is
+available.
+
+Validation identified 256 unique structural candidates across 23 customers:
+
+- 23 candidates across 13 customers show lower observed capacity pressure at an
+  active alternative plant (`Observed Improvement`).
+- 225 candidates across 17 customers lead to plants with no observed orders in
+  the snapshot (`Unutilized Candidate`). These are network options requiring
+  operational confirmation, not evidence of spare capacity.
+- 8 candidates across 6 customers lead to higher observed capacity pressure and
+  remain visible for transparency rather than as recommended improvements.
+
+No duplicate candidate combinations or join fan-out were found. Full validation:
+`02_SQL/reallocation_opportunities_validation.sql`.
+
+<p align="left">
+  <img src="images/Lineage3.png" width="1200">
 </p>
+
+*(Source: Supply Chain Logistics Problem Dataset (Dzalbs & Kalganova, 2019); data preparation and modeling in dbt.)*
+</br>
+### Statistical Validation
+
+Following coach feedback after the third status update, the two theses
+selected for that meeting (Capacity Risk concentration and the C46 freight
+outlier) are backed with lightweight statistical tests. These tests validate
+properties of the underlying KPI data and are deliberately kept separate from
+the model-level APIndex sensitivity analysis below.
+
+- **C46 outlier:** one-sample t-test on order-level freight rate (n = 761)
+  against the network mean (excl. C46), order level rather than customer
+  level to have a defensible sample size for the test.
+- **Capacity concentration:** correlation check (Spearman primary, given the
+  known skew and tied values in `avg_capacity_utilization`; Pearson reported
+  alongside) between capacity utilization and the other two KPIs, testing
+  whether the structural concentration has any measurable spillover.
+
+Full notebook: `01_Notebooks/02_hypothesis_testing.ipynb`.
+
+### Action Priority Index
+
+The APIndex is calculated in Tableau from the three normalized KPI inputs:
+
+`APIndex = (Freight × wF + Capacity × wC + Delivery × wD) / (wF + wC + wD)`
+
+The same 40 customers with a complete three-KPI basis are used across all
+perspectives. Only the weighting changes:
+
+| Perspective | Freight | Capacity | Delivery | Decision emphasis |
+|---|---:|---:|---:|---|
+| Strategic | 20% | 50% | 30% | Structural capacity exposure |
+| Tactical | 40% | 20% | 40% | Cost and delivery balance |
+| Operational | 20% | 20% | 60% | Immediate delivery performance |
+
+Common thresholds keep the scale comparable across perspectives:
+
+- **Low:** `< 0.30`
+- **Medium:** `0.30–<0.60`
+- **High:** `≥ 0.60`
+
+These are transparent decision-support boundaries selected after inspecting the
+three APIndex distributions. They are not statistically estimated risk cut-offs.
+Using a common scale means that a customer's class can change because the
+stakeholder weighting changes, not because each perspective uses a different
+classification rule.
+
+### APIndex Sensitivity Analysis
+
+The model validation was performed in two steps:
+
+1. `04_APIndex_sensitivity_analysis.ipynb` compares distributions, rankings,
+   customer movement and candidate thresholds across Strategic, Tactical and
+   Operational views.
+2. `05_APIndex_weight_sensitivity.ipynb` reproduces the Tableau APIndex in
+   Python and perturbs one KPI weight at a time by ±10 percentage points. The
+   remaining two weights are adjusted proportionally so that the total remains
+   100%.
+
+The Python reproduction matches Tableau to floating-point precision. Customer
+rankings remain highly correlated under the tested weight changes, indicating
+that the overall ordering is broadly robust. Priority classes are more
+sensitive near the `0.30` and `0.60` boundaries. Increasing the Capacity weight
+produces the most class switches because the Capacity KPI contains strong
+structural concentration and many tied customer values.
+
+C29 remains a strong priority signal overall, although its Tactical High class
+is not invariant. C46 is a useful boundary case: its Tactical baseline lies
+just below `0.60`, so moderate weight changes can move it between Medium and
+High. APIndex classes should therefore always be read together with the three
+underlying KPI values.
+
+**Conclusion:** the APIndex is suitable as a transparent prioritization aid.
+Its ranking is broadly robust to moderate weight changes, while categorical
+labels near the chosen thresholds should be treated as directional rather than
+deterministic.
+
+### Tableau Decision Layer
+
+Tableau is the presentation and interaction layer rather than a second data-
+transformation layer. It receives the normalized KPI columns from
+`mart_customer_apindex`, plant-level context from `mart_plant_overview`, and
+the structurally validated alternatives from
+`mart_reallocation_opportunities`. The Plant Overview is related logically to
+the APIndex mart so Tableau can query each table at its native grain.
+
+The intended interaction flow is:
+
+1. Select a stakeholder perspective (Strategic, Tactical, Operational).
+2. Apply the corresponding weight profile to the three normalized KPIs.
+3. Rank complete-data customers by APIndex and classify them as Low, Medium or
+   High using the common thresholds.
+4. Inspect the KPI composition behind the score, especially for customers near
+   a threshold.
+5. Add plant-level capacity, cost and network context through the related Plant
+   Overview without recalculating the customer APIndex.
+6. Use the operational reallocation view as a separate drill-down for eligible
+   customer/product combinations; treat `Unutilized Candidate` as requiring
+   confirmation, not as a recommendation.
+
+The six customers with incomplete KPI data remain visible as a separate data-
+completeness group and are not assigned a partial APIndex. This prevents a low
+score from being confused with missing evidence.
 
 ## Workflow
 
-Python/Pandas (EDA, cleaning) → SQL (PostgreSQL/DBeaver) → dbt cloud (staging → prep → mart) → 
-Tableau (dashboard) → GitHub (code, files and images)
+Python/Pandas (EDA and cleaning) → SQL/PostgreSQL (diagnosis and prototyping) →
+dbt Cloud (staging → prep → marts and tests) → Python (statistical and model
+validation) → Tableau (stakeholder perspectives and operational drill-down) →
+GitHub (versioned code, documentation and outputs)
 
 <p align="center">
   <img src="images/workflow.png" width="850">
@@ -233,13 +372,23 @@ images/                   png files
 
 ### Step 2 SQL/dbt
 - [x] KPI/Index definition
-- [x] KPI/Index calculation
+- [x] KPI-input calculation and normalization
 - [x] dbt models
   - [x] staging
   - [x] prep
-  - [x] mart
+  - [x] customer APIndex mart
+  - [x] plant overview mart
+  - [x] reallocation-opportunity mart
+- [x] Reallocation candidate validation
 
-### Step 3 Tableau
-- [ ] Tableau dashboard
-- [ ] *optional validation*
-- [ ] Final presentation (deadline: September 29)
+### Step 3 Validation
+- [x] Statistical validation of Capacity Risk and C46 theses
+- [x] APIndex distribution and threshold assessment
+- [x] Tableau/Python APIndex reproduction check
+- [x] Weight sensitivity analysis (±10 percentage points)
+
+### Step 4 Tableau and Presentation
+- [x] Stakeholder weight profiles and common priority thresholds
+- [ w.i.p. ] Final Tableau dashboard/story
+- [x] Integrate reallocation drill-down and data-completeness view
+- [ w.i.p. ] Final presentation (deadline: September 29)
