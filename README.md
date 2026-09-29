@@ -360,7 +360,7 @@ GitHub (versioned code, documentation and outputs)
 02_SQL/                   SQL deliverables
 03_dbt/                   dbt models
 04_Dashboard/             Tableau workbook / exports
-05_Stakeholder_meetings/  status presentations  
+05_Presentations/         status presentations  
 data/                     Raw dataset (gitignored, not versioned – see setup instructions)
 images/                   png files
 
