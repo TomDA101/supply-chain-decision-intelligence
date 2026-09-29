@@ -1,7 +1,10 @@
 # Supply Chain Decision Intelligence
 
-**Status:** Work in progress — capstone project, neue fische Data Analytics Bootcamp.
-This README reflects the current stage and will be extended as the project develops.
+**Status:** Completed capstone project — neue fische Data Analytics Bootcamp.
+
+This repository documents the development of a Supply Chain Decision Intelligence
+framework from data preparation and modeling through validation and an interactive
+Tableau decision layer.
 
 ## Project Idea 🎯
 
@@ -389,6 +392,6 @@ images/                   png files
 
 ### Step 4 Tableau and Presentation
 - [x] Stakeholder weight profiles and common priority thresholds
-- [ w.i.p. ] Final Tableau dashboard/story
+- [x] Final Tableau dashboard/story
 - [x] Integrate reallocation drill-down and data-completeness view
-- [ w.i.p. ] Final presentation (deadline: September 29)
+- [x] Final presentation (deadline: September 29)
