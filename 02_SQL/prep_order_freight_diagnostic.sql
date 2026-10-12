@@ -49,14 +49,14 @@ where not exists (
       and o.service_level = f.service_level
       and o.weight between f.min_weight_qty and f.max_weight_qty
 )
-and o.carrier != 'V444_3'  -- CRF exclusion ;
+and o.carrier != 'V44_3'  -- CRF exclusion ;
 
 
 -- Check A: Root cause breakdown
 
 select distinct o.carrier, o.origin_port, o.destination_port, o.service_level
 from stg_order_list o
-where o.carrier != 'V444_3'
+where o.carrier != 'V44_3'
 and not exists (
     select 1 from stg_freight_rates f
     where o.carrier = f.carrier and o.origin_port = f.origin_port

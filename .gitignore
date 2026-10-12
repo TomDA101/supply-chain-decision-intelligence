@@ -219,3 +219,13 @@ __marimo__/
 
 # Project data (raw dataset, not versioned)
 data/   
+
+# Project-specific: dbt and local credentials
+profiles.yml
+dbt_packages/
+logs/
+.env.*
+!.env.example
+
+# macOS
+.DS_Store

@@ -17,6 +17,16 @@ adjustable priority score with KPI-level context and a separate operational
 reallocation layer. It supports prioritization and scenario discussion; it is
 not a predictive model or an automated allocation recommendation.
 
+## Key Results
+
+- Built a customer-level Action Priority Index combining delivery reliability, freight cost exposure, and capacity risk, with adjustable weighting for three stakeholder perspectives.
+- Developed a data preparation and modeling workflow using Python/Pandas, PostgreSQL, and dbt, feeding an interactive Tableau decision layer.
+- Evaluated 46 customers; 40 had complete inputs for all three KPIs and could be scored consistently.
+- Identified and validated 256 structurally eligible reallocation candidates across 23 customers. These indicate network options, **not confirmed spare capacity**.
+- Tested the index using statistical checks and weight sensitivity analysis, documenting data-quality limitations and threshold sensitivity.
+
+**Tech stack:** Python · Pandas · SQL · PostgreSQL · dbt · Tableau · Git/GitHub
+
 ## Dataset
 
 **Source:** Dzalbs, I. & Kalganova, T. (2019). *Supply Chain Logistics Problem
@@ -206,12 +216,11 @@ the Tableau model. It combines master-data capacity and unit cost with observed
 order volume, share of total order volume, capacity-utilization ratio, customers
 served, port connections, supported products, and an active/inactive flag.
 
-In Tableau, `mart_plant_overview` is connected to `mart_customer_apindex`
-through a **logical relationship**, not a physical row-level join. This keeps
-the different grains intact — plant level versus customer level — and prevents
-plant attributes from duplicating customer rows or changing APIndex values.
-The relationship adds plant/network context to the customer prioritization;
-`mart_customer_apindex` remains the authoritative source for the APIndex.
+In Tableau, `mart_plant_overview` is used as a separate data source rather than
+being joined or related to `mart_customer_apindex`. This keeps plant-level and
+customer-level data at their respective grains and avoids unintended duplication
+of customer-level KPI values. The APIndex remains calculated exclusively
+from `mart_customer_apindex`.
 
 `mart_reallocation_opportunities` — a separate operational decision-support
 mart at the grain customer × product × origin port × current plant × alternative
@@ -239,7 +248,7 @@ No duplicate candidate combinations or join fan-out were found. Full validation:
 </p>
 
 *(Source: Supply Chain Logistics Problem Dataset (Dzalbs & Kalganova, 2019); data preparation and modeling in dbt.)*
-</br>
+
 ### Statistical Validation
 
 Following coach feedback after the third status update, the two theses
@@ -321,8 +330,9 @@ Tableau is the presentation and interaction layer rather than a second data-
 transformation layer. It receives the normalized KPI columns from
 `mart_customer_apindex`, plant-level context from `mart_plant_overview`, and
 the structurally validated alternatives from
-`mart_reallocation_opportunities`. The Plant Overview is related logically to
-the APIndex mart so Tableau can query each table at its native grain.
+`mart_reallocation_opportunities`. The Plant Overview remains a separate Tableau
+data source, preserving the different aggregation levels of plant-level and
+customer-level data.
 
 The intended interaction flow is:
 
@@ -363,10 +373,10 @@ GitHub (versioned code, documentation and outputs)
 05_Presentations/         status presentations  
 data/                     Raw dataset (gitignored, not versioned – see setup instructions)
 images/                   png files
-
 ```
+***Note on SQL files:** The `02_SQL/` directory contains exploratory queries, diagnostics, and development-stage SQL used during the project. The finalized transformation logic is maintained in the dbt models under `03_dbt/`. Some exploratory scripts therefore reflect earlier stages of development.*
 
-## Current Progress
+## Project Milestones
 
 ### Step 1 Python/Pandas
 - [x] Business Question
